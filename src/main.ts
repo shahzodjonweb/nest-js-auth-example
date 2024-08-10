@@ -5,6 +5,10 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors({
+    origin: '*', // Allow all origins (use with caution)
+  });
+
   const config = new DocumentBuilder()
     .setTitle('User Management API')
     .setDescription(
