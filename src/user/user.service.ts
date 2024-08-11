@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from './user.schema';
@@ -34,7 +38,7 @@ export class UserService {
   async generatePasswordResetToken(email: string): Promise<string> {
     const user = await this.findByEmail(email);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User with the given email not found');
     }
 
     const resetToken = randomBytes(32).toString('hex');
@@ -52,7 +56,7 @@ export class UserService {
     });
 
     if (!user) {
-      throw new Error('Invalid or expired password reset token');
+      throw new BadRequestException('Invalid or expired password reset token');
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
@@ -64,7 +68,7 @@ export class UserService {
   async generateEmailConfirmationToken(email: string): Promise<string> {
     const user = await this.findByEmail(email);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User with the given email not found');
     }
 
     const confirmationToken = randomBytes(32).toString('hex');
@@ -78,7 +82,7 @@ export class UserService {
     const user = await this.userModel.findOne({ confirmationToken });
 
     if (!user) {
-      throw new Error('Invalid confirmation token');
+      throw new BadRequestException('Invalid confirmation token');
     }
 
     user.isEmailConfirmed = true;

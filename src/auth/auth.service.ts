@@ -3,6 +3,10 @@ import { JwtService } from '@nestjs/jwt';
 import { UserService } from '../user/user.service';
 import { LoginUserDto } from '../user/dto/login-user.dto';
 import { CreateUserDto } from '../user/dto/create-user.dto';
+import { ForgotPasswordDto } from '../user/dto/forgot-password.dto';
+import { ResetPasswordDto } from '../user/dto/reset-password.dto';
+import { ConfirmEmailDto } from '../user/dto/confirm-email.dto';
+
 import * as bcrypt from 'bcrypt';
 import * as nodemailer from 'nodemailer';
 
@@ -15,7 +19,8 @@ export class AuthService {
 
   async register(createUserDto: CreateUserDto) {
     const user = await this.userService.create(createUserDto);
-    // Optionally, send a confirmation email here
+    const confirmEmailDto = { email: user.email };
+    this.sendEmailConfirmation(confirmEmailDto);
     return user;
   }
 
@@ -41,19 +46,22 @@ export class AuthService {
     };
   }
 
-  async sendPasswordResetEmail(email: string): Promise<void> {
+  async sendPasswordResetEmail(
+    forgotPasswordDto: ForgotPasswordDto,
+  ): Promise<void> {
+    const { email } = forgotPasswordDto;
     const resetToken = await this.userService.generatePasswordResetToken(email);
     const transporter = nodemailer.createTransport({
-      service: 'Gmail',
+      service: process.env.EMAIL_SERVICE,
       auth: {
-        user: 'your-email@gmail.com',
-        pass: 'your-email-password',
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     });
 
     const mailOptions = {
       to: email,
-      from: 'your-email@gmail.com',
+      from: process.env.EMAIL_USER,
       subject: 'Password Reset',
       text: `You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n
              Please click on the following link, or paste this into your browser to complete the process:\n\n
@@ -64,23 +72,28 @@ export class AuthService {
     await transporter.sendMail(mailOptions);
   }
 
-  async resetPassword(resetToken: string, newPassword: string): Promise<void> {
+  async resetPassword(
+    resetToken: string,
+    resetPasswordDto: ResetPasswordDto,
+  ): Promise<void> {
+    const { password: newPassword } = resetPasswordDto;
     await this.userService.resetPassword(resetToken, newPassword);
   }
 
-  async sendEmailConfirmation(email: string): Promise<void> {
+  async sendEmailConfirmation(confirmEmailDto: ConfirmEmailDto): Promise<void> {
+    const { email } = confirmEmailDto;
     const confirmationToken =
       await this.userService.generateEmailConfirmationToken(email);
     const transporter = nodemailer.createTransport({
-      service: 'Gmail',
+      service: process.env.EMAIL_SERVICE,
       auth: {
-        user: 'your-email@gmail.com',
-        pass: 'your-email-password',
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     });
     const mailOptions = {
       to: email,
-      from: 'your-email@gmail.com',
+      from: process.env.EMAIL_USER,
       subject: 'Email Confirmation',
       text: `Please click on the following link to confirm your email:\n\n
              http://localhost:3000/auth/confirm-email/${confirmationToken}\n\n
